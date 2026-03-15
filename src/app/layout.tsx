@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import "leaflet/dist/leaflet.css";
 import { VendorProvider } from "@/context/VendorContext";
+import { BlockchainProvider } from "@/context/BlockchainContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -19,9 +20,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <VendorProvider>
-          {children}
-        </VendorProvider>
+        <BlockchainProvider>
+          <VendorProvider>
+            {children}
+          </VendorProvider>
+        </BlockchainProvider>
       </body>
     </html>
   );

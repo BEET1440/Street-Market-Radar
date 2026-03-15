@@ -3,11 +3,13 @@
 import React, { useState } from 'react';
 import MapWrapper from '@/components/MapWrapper';
 import Link from 'next/link';
-import { Search, MapPin, List, Navigation2, ShoppingBasket, ArrowLeft } from 'lucide-react';
+import { Search, MapPin, List, Navigation2, ShoppingBasket, ArrowLeft, ShieldCheck } from 'lucide-react';
 import { useVendors } from '@/context/VendorContext';
+import { useBlockchain } from '@/context/BlockchainContext';
 
 export default function BuyerPage() {
   const { vendors } = useVendors();
+  const { isConnected, account, connectWallet } = useBlockchain();
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
   const [searchTerm, setSearchTerm] = useState('');
   const [mapCenter, setMapCenter] = useState<[number, number]>([51.505, -0.09]);
@@ -35,21 +37,37 @@ export default function BuyerPage() {
           </Link>
           <h1 className="text-xl font-bold text-primary-600 hidden sm:block">Street Market Radar</h1>
         </div>
-        <div className="flex bg-gray-100 p-1 rounded-lg">
-          <button 
-            onClick={() => setViewMode('map')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all ${viewMode === 'map' ? 'bg-white shadow-sm text-primary-600' : 'text-gray-500'}`}
-          >
-            <MapPin size={18} />
-            Map
-          </button>
-          <button 
-            onClick={() => setViewMode('list')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-primary-600' : 'text-gray-500'}`}
-          >
-            <List size={18} />
-            List
-          </button>
+        <div className="flex items-center gap-4">
+          {!isConnected ? (
+            <button 
+              onClick={connectWallet}
+              className="hidden md:flex items-center gap-2 text-amber-600 font-bold hover:text-amber-700 transition-colors"
+            >
+              <ShieldCheck size={20} />
+              Verify on Chain
+            </button>
+          ) : (
+            <div className="hidden lg:flex items-center gap-2 bg-green-50 text-green-700 px-4 py-2 rounded-xl border border-green-200">
+              <ShieldCheck size={16} />
+              <span className="text-xs font-bold uppercase tracking-widest">On-Chain Verified</span>
+            </div>
+          )}
+          <div className="flex bg-gray-100 p-1 rounded-lg">
+            <button 
+              onClick={() => setViewMode('map')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all ${viewMode === 'map' ? 'bg-white shadow-sm text-primary-600' : 'text-gray-500'}`}
+            >
+              <MapPin size={18} />
+              Map
+            </button>
+            <button 
+              onClick={() => setViewMode('list')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-primary-600' : 'text-gray-500'}`}
+            >
+              <List size={18} />
+              List
+            </button>
+          </div>
         </div>
       </header>
 

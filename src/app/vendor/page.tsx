@@ -1,12 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { MapPin, Navigation, Store, Package, Plus, Trash2, Save, Send, ArrowLeft } from 'lucide-react';
+import { MapPin, Navigation, Store, Package, Plus, Trash2, Save, Send, ArrowLeft, Wallet } from 'lucide-react';
 import { useVendors } from '@/context/VendorContext';
+import { useBlockchain } from '@/context/BlockchainContext';
 
 export default function VendorDashboard() {
   const { vendors, updateVendorLocation, setVendorStatus } = useVendors();
+  const { isConnected, account, connectWallet, registerVendorOnChain, updateLocationOnChain } = useBlockchain();
   const [isLive, setIsLive] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
   const [location, setLocation] = useState<[number, number]>([51.505, -0.09]);
 
   // Sync initial status once
@@ -34,6 +37,8 @@ export default function VendorDashboard() {
           const newLng = pos.coords.longitude;
           setLocation([newLat, newLng]);
           updateVendorLocation('1', newLat, newLng);
+          // Only update on-chain if location changes significantly
+          updateLocationOnChain(newLat, newLng);
         },
         (err) => console.error(err),
         { enableHighAccuracy: true }
@@ -42,10 +47,23 @@ export default function VendorDashboard() {
     }
   }, [isLive, updateVendorLocation]);
 
-  const handleToggleLive = () => {
+  const handleToggleLive = async () => {
     const newStatus = !isLive;
-    setIsLive(newStatus);
-    setVendorStatus('1', newStatus);
+    if (newStatus && isConnected) {
+      setIsRegistering(true);
+      try {
+        await registerVendorOnChain("Joe's Fresh Produce", "Vegetables");
+        setIsLive(true);
+        setVendorStatus('1', true);
+      } catch (err) {
+        console.error("Failed to register on chain:", err);
+      } finally {
+        setIsRegistering(false);
+      }
+    } else {
+      setIsLive(newStatus);
+      setVendorStatus('1', newStatus);
+    }
   };
 
   const handleAddItem = () => {
@@ -77,13 +95,36 @@ export default function VendorDashboard() {
             </div>
           </div>
         </div>
-        <button 
-          onClick={handleToggleLive}
-          className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold transition-all shadow-lg ${isLive ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-primary-600 text-white hover:bg-primary-700'}`}
-        >
-          {isLive ? <Navigation size={20} className="animate-pulse" /> : <Send size={20} />}
-          {isLive ? 'GO OFFLINE' : 'GO LIVE'}
-        </button>
+        <div className="flex items-center gap-4">
+          {!isConnected ? (
+            <button 
+              onClick={connectWallet}
+              className="flex items-center gap-2 bg-amber-500 text-white px-4 py-2 rounded-xl font-bold hover:bg-amber-600 transition-colors shadow-md"
+            >
+              <Wallet size={20} />
+              Connect Wallet
+            </button>
+          ) : (
+            <div className="hidden lg:flex items-center gap-2 bg-green-50 text-green-700 px-4 py-2 rounded-xl border border-green-200">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+              <span className="text-xs font-mono">{account?.slice(0, 6)}...{account?.slice(-4)}</span>
+            </div>
+          )}
+          <button 
+            onClick={handleToggleLive}
+            disabled={isRegistering}
+            className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold transition-all shadow-lg ${isLive ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-primary-600 text-white hover:bg-primary-700'} ${isRegistering ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            {isRegistering ? (
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : isLive ? (
+              <Navigation size={20} className="animate-pulse" />
+            ) : (
+              <Send size={20} />
+            )}
+            {isRegistering ? 'REGISTERING...' : isLive ? 'GO OFFLINE' : 'GO LIVE'}
+          </button>
+        </div>
       </header>
 
       <main className="flex-1 p-6 max-w-4xl mx-auto w-full grid grid-cols-1 md:grid-cols-3 gap-8">
